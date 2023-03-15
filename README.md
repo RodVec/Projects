@@ -1,6 +1,6 @@
 ![image](https://user-images.githubusercontent.com/90775903/146059414-25fc9a86-a00d-4c32-87b8-ed5aa7fbf0b6.png)
 
-# My Projects
+# My Portfolio
 
 A portfolio is a collection of representative work. My portfolio is a set of different projects that I have done in my academic time. 
 Some of the programming that I have learned is: R notebooks (R markdown documents and the associated html document resulting from preview), Pyhon, and C++
