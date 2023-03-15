@@ -1,0 +1,285 @@
+---
+title: "Money in US Politics"
+author: "Rodrigo Vecino"
+output: html_notebook
+---
+
+## Packages
+```{r}
+library(tidyverse)
+library(robotstxt)
+library(rvest)
+library(scales)
+library(dsbox)
+```
+
+## Data collection via web scraping
+The data come from OpenSecrets.org, a “website tracking the influence of money on U.S. politics, and how that money affects policy and citizens’ lives”. This website is hosted by The Center for Responsive Politics, which is a nonpartisan, independent nonprofit that “tracks money in U.S. politics and its effect on elections and public policy.” (Source)
+
+Before getting started, let’s check that a bot has permissions to access pages on this domain. This function comes from the robotstxt package and it checks if a bot (or a web scraper like you!) has permissions to access the webpage. If the function returns TRUE, then the answer is “yes”, you’re technically allowed to scrape the webpage.
+```{r}
+paths_allowed("https://www.opensecrets.org")
+```
+
+## Question 1: Scraping 2020 contributons
+Let’s begin by scraping the data for 2020 PAC contributions, one step at a time.
+
+First, we define a new variable that stores the URL of the page we want to scrape data from as a character string:
+```{r}
+url_2020 <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2020"
+```
+
+## Question 2: Read the webpage
+Next, we use the read_html() function to read the HTML data from the webpage:
+```{r}
+page <- read_html(url_2020)
+```
+
+## Question 3: Bringing it all together
+
+Now that we’ve planned which bits of the page we’re going to be scraping data from, it’s time to perform the scrape.
+
+In order to convert data to a tibble, we’ll use the as_tibble() function from the tidyverse package. Fill in the blanks in the following code block to pick out the PAC contributions data.
+```{r}
+pac_2020 <- page %>%
+  html_node(".DataTable-Partial") %>%
+  html_table("td", header = TRUE, fill = TRUE) %>%
+  as_tibble()
+```
+
+## Question 4: Glimpse our new dataset
+Great! Now that we’ve got our dataset on 2020 PAC contributions, let’s use the glimpse() function to take a look at it:
+```{r}
+glimpse(pac_2020)
+```
+
+## Question 5: Clean up names
+The names of the variables in the pac_2020 data frame are somewhat ill-formed. Rename the variables to the following: name, country_parent, total, dems, repubs. Note that dems is short for Democrats and repubs is short for Republicans, the two major parties in the US.
+```{r}
+pac_2020 <- pac_2020 %>%
+  rename(
+    name = `PAC Name (Affiliate)`,
+    country_parent = `Country of Origin/Parent Company`,
+    total = Total,
+    dems = Dems,
+    repubs = Repubs
+  )
+```
+
+## Question 6: Glimpse again
+Let’s see how that looks now:
+```{r}
+glimpse(pac_2020)
+```
+
+## Question 7: Nearly there
+That’s pretty good but the name variable looks pretty messy. There is lots of white space between the name and the affliate in parantheses. But remember, we have a string manipulation function that removes pesky white spaces: str_squish(). For the final data cleaning exercise (for now!), fix up the name variable using this function.
+```{r}
+pac_2020 <- pac_2020 %>%
+  mutate(name = str_squish(name))
+```
+
+## Question 8: One final glimpse
+To finish of the scraping part of this tutorial, glimpse the data frame one more time to check everything looks good.
+```{r}
+glimpse(pac_2020)
+```
+
+## Question 9: Number of observations
+```{r}
+nrow(pac_2020)
+```
+
+## Question 10: Number of variables
+```{r}
+ncol(pac_2020)
+```
+
+## Question 11: Country and parent fields
+First, let’s use the separate() function to separate country_parent into country and parent columns. Note that country and parent company names are separated by / (which we’ll need to specify) and also note that there are some entries where the / sign appears twice and in these cases we want to only split the value at the first occurrence of /.
+
+This can be accomplished by setting the extra argument to “merge” so that the cell is split into only 2 segments, e.g. we want “Denmark/Novo Nordisk A/S” to be split into “Denmark” and “Novo Nordisk A/S”.
+
+Fill the blanks in the following code block to do this.
+```{r}
+pac_all_raw <- pac_all_raw %>%
+  separate(country_parent, into = c("country", "parent"), sep = "/", extra = "merge")
+```
+
+## Question 12: Convert monetary values to numeric
+Next, we want to convert the values of the total, dems and repubs fields to numerical values, which means removing the dollar signs at the start and the commas within the numbers.
+
+To do this, there are a few functions that can help us: str_remove() and str_remove_all() can remove certain characters or patterns of characters from a string, and the as.numeric() function converts (or at least tries to convert) strings and other variable types into numeric values.
+
+Since we have to apply this cleaning to all three fields, let’s write a function to do so. Remember that a function is just a packaged set of instructions (i.e. piece of code) that’s easy to reuse - without copying and pasting!
+
+Let’s start building our function: we’ll call it parse_currency
+```{r}
+parse_currency <- function(x){
+  x %>% 
+    str_remove("\\$") %>%
+    str_remove_all(",") %>%
+    as.numeric()
+}
+```
+
+## Question 13: Using the function
+Now, we can combine the parse_currency() function with mutate() to apply it to the values in the data frame:
+```{r}
+pac_all <- pac_all_raw %>%
+  mutate(
+    total = parse_currency(total),
+    dems = parse_currency(dems),
+    repubs = parse_currency(repubs)
+  )
+```
+
+## Question 14: Glimpse the cleaned data
+To top this off, let’s take a quick glimpse at the new dataset:
+
+```{r}
+glimpse(pac_all)
+```
+
+## Question 15: Data visualisation
+First off in this section, we’re going to create a line plot of total contributions from all foreign-connected PACs in the UK and Canada over the years.
+
+For this, we’re going to be following these steps: - Filter for only Canada and UK. - Calculate sum of total contributions from PACs for each year for each country by using a sequence of group_by() then summarise(). - Make a plot of total contributions (y-axis) by year (x-axis) where two lines identified by different colors represent each of Canada and UK.
+```{r}
+pac_all %>%
+  filter(country %in% c("Canada", "UK")) %>%
+  group_by(country, year) %>%
+  summarise(tot = sum(total), .groups = "drop") %>%
+  ggplot(mapping = aes(x = year, y = tot, group = country, color = country)) +
+  geom_line()
+```
+
+## Building a plot
+For the final part of this tutorial, we’re going to work towards building this plot:
+
+### Step 1 - Filter
+First, we need to filter the data for UK contributions:
+```{r}
+pac_all %>%
+  filter(country == "UK")
+```
+
+### Step 2 - Calculate total contributions
+Next, we need to calculate total contributions to Democratic and Republican parties from all UK-connected PACs each year. This requires a group_by() and summarise() step:
+```{r}
+pac_all %>%
+  filter(country == "UK") %>%
+  group_by(year) %>%
+  summarise(
+    Democrat = sum(dems),
+    Republican = sum(repubs),
+    .groups = "drop"
+  )
+```
+
+### Step 3 - Pivoting
+This results in a 11x3 tibble (11 years, and a column each for year, total contributions in that year to the Democratic party, and total contributions in that year to the Republican party). Ultimately we want to color the lines by party though, and this requires our data to be formatted a little differently: with two rows per year, one for contributions to the Democratic Party and the other for the Republican Party.
+
+We can achieve this by pivoting our data to be longer (going from 11 to 22 rows)
+```{r}
+pac_all %>%
+  filter(country == "UK") %>%
+  group_by(year) %>%
+  summarise(
+    Democrat = sum(dems),
+    Republican = sum(repubs),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(
+    cols = c(Democrat, Republican), 
+    names_to = "party", 
+    values_to = "amount"
+    )
+```
+
+Let’s save this as a new data frame to simplify the code for generating the plot:
+```{r}
+pac_all_final <- pac_all %>%
+  filter(country == "UK") %>%
+  group_by(year) %>%
+  summarise(
+    Democrat = sum(dems),
+    Republican = sum(repubs),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(
+    cols = c(Democrat, Republican), 
+    names_to = "party", 
+    values_to = "amount"
+    )
+```
+
+### Step 4 - Plotting
+Now we can form a basic plot of UK-based PAC contributions to each political party over time. Once we’ve done this, it’s not too hard to make it more aesthetically pleasing by adding further layers to ggplot.
+```{r}
+pac_all_final %>%
+  ggplot(mapping = aes(x = year, y = amount, color = party)) +
+  geom_line()
+```
+
+### Step 4.1 - Changing party colours
+If you’ve ever seen a US election-related graphic, you’ll know that the Democrats are always blue and the Republicans red - so let’s colour our plot like this. We can use the scale_color_manual() function from the scales package to do so. This function’s main argument is values, which takes in a vector describing the colours to be used, for example c("red", "white", "blue").
+
+Copy your code from the previous exercise, and add a scale_color_manual() line to the plot:
+```{r}
+pac_all_final %>%
+  ggplot(mapping = aes(x = year, y = amount, color = party)) +
+  geom_line() +
+  scale_color_manual(values = c("red", "blue"))
+```
+
+### Step 4.2 - Dollar formatting
+The dollar values on the vertical axis aren’t really that readable, so let’s format them to be in the form “$1M” instead of “…”.
+
+We can do this using the scale_y_continuous() function from the scales package. In this function, for the labels argument, the function of interest is label_dollar().
+
+In the following code block, copy your code from the previous exercise and add another layer to reformat the dollar values. Fill in the blanks for the scale and suffix parameters. Refer to the Documentation if you need help.
+```{r}
+pac_all_final %>%
+  ggplot(mapping = aes(x = year, y = amount, color = party)) +
+  geom_line() +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_y_continuous(labels = label_dollar(scale = 0.000001, suffix = "M"))
+```
+
+### Step 4.3 - Descriptive labels
+What plot would be complete without some proper labels, instead of the auto-generated ones?
+
+Once again, copy your code from the previous exercise, and fill in the blanks so your plot shows the same labels as the plot we’re trying to recreate.
+```{r}
+pac_all_final %>%
+  ggplot(mapping = aes(x = year, y = amount, color = party)) +
+  geom_line() +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_y_continuous(labels = label_dollar(scale = 0.000001, suffix = "M"))  +
+  labs(
+    x = "Year",
+    y = "Amount",
+    color = "Party",
+    title = "Contribution to US politics from UK-Connected PACs",
+    subtitle = "By party, over time"
+  ) 
+```
+
+### Step 4.4 - theme_minimal()
+For the final step, we apply the theme_minimal() layer to make certain aspects of the plot simpler or, well, minimalist.
+```{r}
+pac_all_final %>%
+  ggplot(mapping = aes(x = year, y = amount, color = party)) +
+  geom_line() +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_y_continuous(labels = label_dollar(scale = 0.000001, suffix = "M"))  +
+  labs(
+    x = "Year",
+    y = "Amount",
+    color = "Party",
+    title = "Contribution to US politics from UK-Connected PACs",
+    subtitle = "By party, over time"
+  )  +
+  theme_minimal()
+```

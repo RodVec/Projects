@@ -1,0 +1,137 @@
+---
+title: "Books"
+output: html_notebook
+author : "Rodrigo Vecino"
+---
+
+## Packages
+```{r packages}
+library(dplyr)
+library(janitor)
+library(tidyverse)
+```
+
+## Load data
+```{r data}
+ books = read.csv(file="https://raw.githubusercontent.com/jskufca/DS241_bikes_2021/Vecino/Portfolio/Data/CU_ACAD_DEPT_WHEN_OFF_ENRL_22740.csv", header=TRUE, skip=1)
+```
+
+## Variable Calculus
+```{r calculus}
+title <-c("Calculus I", "Calculus II")
+q <- c("LEC")
+
+calculus <- books %>%
+  filter(Title %in% title) %>%
+  filter(Component %in% q) %>%
+  group_by(Term.1) %>%
+  arrange(Term) %>%
+  ungroup()
+```
+
+## Variable Fall_calc1
+Create Variable with all the students from the fall semester in Calculus 1.
+```{r fall_calc1}
+term_fall <-seq(4149, 4219, by = 10)
+
+fall_calc1 <- calculus %>%
+  filter(calculus$Term %in% term_fall) %>%
+  group_by(Term.1)
+
+fall_calc1 = filter(fall_calc1, Title == "Calculus I")
+
+fall_calc1 = subset(fall_calc1, select = -c(Acad.Org, Current.Status, Course.ID, Subject, Instructor, Component, Catalog, Section, Term, Title) )
+
+fall_calc1 <- fall_calc1 %>%
+  summarise(enroll = sum(Tot.Enrl)) %>%
+  group_by(Term.1)
+
+names(fall_calc1)[names(fall_calc1) == 'enroll'] <- 'fall_calc1'
+```
+
+## Variable Fall_calc2
+Create Variable with all the students from the fall semester in Calculus 2.
+```{r fall_calc2}
+term_fall <-seq(4149, 4219, by = 10)
+
+fall_calc2 <- calculus %>%
+  filter(calculus$Term %in% term_fall) %>%
+  group_by(Term.1)
+
+fall_calc2 = filter(fall_calc2, Title == "Calculus II")
+
+fall_calc2 = subset(fall_calc2, select = -c(Acad.Org, Current.Status, Course.ID, Subject, Instructor, Component, Catalog, Section, Term, Title) )
+
+fall_calc2 <- fall_calc2 %>%
+  summarise(enroll = sum(Tot.Enrl)) %>%
+  group_by(Term.1)
+
+names(fall_calc2)[names(fall_calc2) == 'enroll'] <- 'fall_calc2'
+```
+
+## Variable Spring_calc1
+Create Variable with all the students from the spring semester in Calculus 1.
+```{r spring_calc1}
+term_spring <-seq(4152, 4222, by = 10)
+
+spring_calc1 <- calculus %>%
+  filter(calculus$Term %in% term_spring) %>%
+  group_by(Term.1)
+
+spring_calc1 = filter(spring_calc1, Title == "Calculus I")
+
+spring_calc1 = subset(spring_calc1, select = -c(Acad.Org, Current.Status, Course.ID, Subject, Instructor, Component, Catalog, Section, Term, Title) )
+
+spring_calc1 <- spring_calc1 %>%
+  summarise(enroll = sum(Tot.Enrl)) %>%
+  group_by(Term.1)
+
+names(spring_calc1)[names(spring_calc1) == 'enroll'] <- 'spring_calc1'
+```
+
+## Variable Spring_calc2
+Create Variable with all the students from the spring semester in Calculus 2.
+```{r spring_calc2}
+term_spring <-seq(4152, 4222, by = 10)
+
+spring_calc2 <- calculus %>%
+  filter(calculus$Term %in% term_spring) %>%
+  group_by(Term.1)
+
+spring_calc2 = filter(spring_calc2, Title == "Calculus II")
+
+spring_calc2 = subset(spring_calc2, select = -c(Acad.Org, Current.Status, Course.ID, Subject, Instructor, Component, Catalog, Section, Term, Title) )
+
+spring_calc2 <- spring_calc2 %>%
+  summarise(enroll = sum(Tot.Enrl)) %>%
+  group_by(Term.1)
+
+names(spring_calc2)[names(spring_calc2) == 'enroll'] <- 'spring_calc2'
+```
+
+
+## Prediction
+Create a model to predict the number of students in calculus 2 the spring semester.
+```{r prediction - other way}
+z = fall_calc1[1:7, 2]
+z[2] = fall_calc2[1:7, 2]
+z[3] = spring_calc1[1:7, 2]
+z[4] = spring_calc2[1:7, 2]
+
+new = fall_calc1[8, 2]
+new[2] = fall_calc2[8, 2]
+
+install.packages("caret")
+library(caret)
+
+model <- train(spring_calc2  ~ fall_calc1 + fall_calc2, data = z, method="lm")
+predictions <- predict(model, new, interval = "prediction")
+final <- cbind(z, predictions)
+
+ggplot(final, aes(spring_calc2, fall_calc1)) +
+geom_point() +
+stat_smooth(method = lm)
+```
+
+
+

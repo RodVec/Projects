@@ -1,0 +1,164 @@
+---
+title: "COVID IN US STATES - CODE CDC"
+author: "Rodrigo Vecino"
+output:
+  html_document:
+    df_print: paged
+---
+
+data from: https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv
+
+## Packages
+```{r load-packages, warning=FALSE, message=FALSE}
+# devtools::install_github("RamiKrispin/coronavirus")
+library(coronavirus)
+library(tidyverse)
+library(lubridate)
+library(glue)
+library(scales)
+library(ggrepel)
+library(DT)
+library(dplyr)
+library(data.table)
+```
+
+## DATA US STATES
+Load the data.
+```{r load data states}
+
+data_states <- read.csv(file = "https://raw.githubusercontent.com/jskufca/DS241_bikes_2021/Vecino/Portfolio/Data/data_CDC.csv", header = TRUE)
+```
+
+
+## Data prep
+I create a variable with all the states that I am interested in.
+```{r select-states}
+states <- c(
+  "FL",
+  "NY",
+  "NJ",
+  "CT",
+  "MSS",
+  "TX",
+  "CAL",
+  "WASH",
+  "IL",
+  "ID"
+)
+```
+
+I filter only data with the states I am interested in and I record the days elapsed, end date and lebels.
+```{r prep-state-data}
+states_deaths <- data_states %>%
+  filter( state %in% states) %>%
+  arrange(date) %>%
+  ungroup()
+
+states_deaths$date <- as.Date(states_deaths$date, "%m/%d/%Y")
+
+days_elapsed <- as.numeric(states_deaths$date - min(states_deaths$date))
+end_date     <- if_else(states_deaths$date == max(states_deaths$date), TRUE, FALSE)
+end_label    <- if_else(end_date, states_deaths$state, NULL)
+
+states_deaths$days_elapsed = days_elapsed
+states_deaths$end_date = end_date
+states_deaths$end_label = end_label
+```
+
+I also need to take a note of the "as of date" for the data so that we can properly label our visualization.
+```{r record-as-of-date}
+as_of_date <- states_deaths %>% 
+  summarise(max(date)) %>% 
+  pull()
+
+as_of_date_formatted <- glue("{wday(as_of_date)}, {month(as_of_date)} {day(as_of_date)}, {year(as_of_date)}")
+```
+
+## Visualization - Deaths per day from COVID-19
+```{r visualise, warning=FALSE}
+ggplot(data = states_deaths,
+       mapping = aes(x = date, 
+                     y = new_death, 
+                     color = state, 
+                     label = end_label)) +
+  # represent cumulative cases with lines
+  geom_line(size = 0.7, alpha = 0.8) +
+  # add points to line endings
+  geom_point(data = states_deaths %>% filter(end_date)) +
+  # add country labels, nudged above the lines
+  geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  # turn off legend
+  guides(color = FALSE) +
+  # use pretty colors
+  scale_color_viridis_d() +
+  # better formatting for y-axis
+  scale_y_continuous(labels = label_comma()) +
+  # use minimal theme
+  theme_minimal() +
+  # customize labels
+  labs(
+    x = "Date",
+    y = "Deaths",
+    title = "Deaths per day from COVID-19, selected states",
+    subtitle = glue("Data as of", as_of_date_formatted, .sep = " ")
+  )
+```
+
+## Visualization - Cumulative deaths from COVID-19
+```{r visualise 2, warning=FALSE}
+ggplot(data = states_deaths,
+       mapping = aes(x = days_elapsed, 
+                     y = tot_death, 
+                     color = state, 
+                     label = end_label)) +
+  # represent cumulative cases with lines
+  geom_line(size = 0.7, alpha = 0.8) +
+  # add points to line endings
+  geom_point(data = states_deaths %>% filter(end_date)) +
+  # add country labels, nudged above the lines
+  geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  # turn off legend
+  guides(color = FALSE) +
+  # use pretty colors
+  scale_color_viridis_d() +
+  # better formatting for y-axis
+  scale_y_continuous(labels = label_comma()) +
+  # use minimal theme
+  theme_minimal() +
+  # customize labels
+  labs(
+    x = "Days since 10th confirmed death",
+    y = "Cumulative number of deaths",
+    title = "Cumulative deaths from COVID-19, selected states",
+    subtitle = glue("Data as of", as_of_date_formatted, .sep = " ")
+  )
+```
+
+## Visualization - Cases from COVID-19
+```{r visualise 3, warning=FALSE}
+ggplot(data = states_deaths,
+       mapping = aes(x = days_elapsed, 
+                     y = new_case, 
+                     color = state, 
+                     label = end_label)) +
+  # represent cumulative cases with lines
+  geom_point(size = 0.7, alpha = 0.8) +
+  # add country labels, nudged above the lines
+  geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  # turn off legend
+  guides(color = FALSE) +
+  # use pretty colors
+  scale_color_viridis_d() +
+  # better formatting for y-axis
+  scale_y_continuous(labels = label_comma()) +
+  # use minimal theme
+  theme_minimal() +
+  # customize labels
+  labs(
+    x = "Days since 10th confirmed death",
+    y = "Cases",
+    title = "Cases from COVID-19, selected countries",
+    subtitle = glue("Data as of", as_of_date_formatted, .sep = " "),
+    caption = "Source: github.com/RamiKrispin/coronavirus"
+  )
+```

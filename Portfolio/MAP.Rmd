@@ -1,0 +1,330 @@
+---
+title: "Making maps in R:"
+subtitle: "Using the sf and tmap Packages"
+author: "Rodrigo Vecino"
+---
+
+
+# Libraries
+
+```{r message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+
+library(tidyverse)  # Modern data science workflow
+library(sf)         # Simple features for R
+library(tmap)       # Thematic Maps
+library(tmaptools)  # Thematic Maps Tools
+library(RColorBrewer) # ColorBrewer Palettes
+library(leaflet)    # Interactive web maps
+library(rgdal)      # Bindings for the Geospatial Data Abstraction Library
+library(rgeos)      # Interface to Geometry Engine - Open Source 
+
+
+# Change the presentation of decimal numbers to 4 and avoid scientific notation
+options(prompt="R> ", digits=4, scipen=999)
+```
+
+
+# Import the data
+
+## Non-spatial data
+
+```{r}
+dat <-read.csv("U:/Data Science/MAP/DATASET.csv")
+```
+
+### Explore the data
+
+```{r}
+glimpse(dat) 
+```
+
+#### Definitions of variables
+
+- growth: growth rate of per capita real income 1987-2001
+- base: lograrithm of the per apita income in the base year 1987
+- T: average terrorism index
+- E: average years of schooling
+- G: real per capita government expenditures in 1987
+- Coastal: dummy variable  which takes the value of one if the province is a coastal province.
+
+## Spatial data
+
+```{r}
+mapData <- read_sf("U:/Data Science/MAP/MAP.shp")
+```
+
+### Explore the data
+
+```{r}
+glimpse(mapData)
+```
+
+- Check the Coordinate Reference System
+
+```{r}
+st_crs(mapData)
+```
+
+
+# Transform the data
+
+No need to transform any data because both datasets share a common variable `id`
+
+
+# Merge the data
+
+
+```{r}
+dat_map <- inner_join(
+  dat,
+  mapData,
+  by = "id"
+)
+```
+
+## Keep data as sf object
+
+- Keep the data as sf class, so we will not lose the coodinate system
+
+```{r}
+dat_map <- st_as_sf(dat_map)
+st_crs(mapData)
+```
+
+```{r}
+glimpse(dat_map)
+```
+
+
+
+# Plot Thematic Maps
+
+
+## Quick Map 
+
+- A quick map of the Terrorism variable
+
+```{r}
+qtm(dat_map, fill = "T")
+```
+
+
+## Simple Map
+
+```{r}
+tm_shape(dat_map) + tm_fill("T") 
+```
+
+
+## Remove frame
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T") +
+  tm_layout(frame = FALSE)
+```
+
+
+## Set legend outside
+
+```{r}
+tm_shape(dat_map) + tm_fill("T") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+```
+
+## Set legend size
+
+```{r}
+tm_shape(dat_map) + tm_fill("T") +
+  tm_layout(legend.outside = TRUE, frame = FALSE) +
+  tm_legend(text.size = 0.3) 
+```
+
+
+
+## Set color palette
+
+See color reference [here](https://www.datanovia.com/en/blog/the-a-z-of-rcolorbrewer-palette/)
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T", palette = "Greens") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+```
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T", palette = "-Greens") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+```
+
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T", palette = "viridis") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+```
+
+
+## Add polygon names
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T", palette = "viridis") +
+  tm_layout(legend.outside = TRUE, frame = FALSE) +
+  tm_text("province", size = "Shape_Area",  auto.placement = F, legend.size.show = FALSE) 
+```
+
+
+
+[Documentation](https://rdrr.io/cran/tmap/man/tm_text.html)
+
+## Add scale bar
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T", palette = "viridis") +
+  tm_layout(legend.outside = TRUE, frame = FALSE) +
+  tm_text("province", size = "Shape_Area",  auto.placement = F, legend.size.show = FALSE)  + 
+  tm_scale_bar(position = c("RIGHT", "BOTTOM"))
+```
+
+
+## Set color intervals
+
+Enter “style =” followed by one of the options below.
+
+- equal: divides the range of the variable into n parts.
+- pretty: chooses a number of breaks to fit a sequence of equality spaced ‘round’ values. 
+- quantile: equal number of cases in each group
+- jenks: looks for natural breaks in the data
+- cat: when the variable is categorical 
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          style = "quantile",
+          palette = "Reds"
+    ) +
+  tm_layout(
+    legend.outside = TRUE,
+    frame = FALSE)
+```
+
+Change the number of intervals in the color scheme and how the intervals are spaced. Changing the number of intervals n = 7. So, we have 7 shades instead of the default 5.
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          style = "quantile",
+          n = 7,
+          palette = "Reds"
+    ) +
+  tm_layout(
+    legend.outside = TRUE,
+    frame = FALSE)
+```
+
+
+
+## Add histogram
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          style = "quantile",
+          n = 5,
+          palette = "YlOrBr",
+          legend.hist = TRUE
+    ) +
+  tm_layout(
+    legend.outside = TRUE,
+    frame = FALSE)
+```
+
+
+## Add borders
+
+You can edit the borders of the shapefile with the tm_borders() function which has many arguments. alpha denotes the level of transparency on a scale from 0 to 1 where 0 is completely transparent.
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          style = "quantile",
+          palette = "Blues"
+    ) + 
+  tm_borders(alpha=.4) +
+  tm_layout(
+    legend.outside = TRUE,
+    frame = FALSE)
+```
+
+## Add compass
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          style = "quantile",
+          palette = "viridis"
+    ) + 
+  tm_borders(alpha=.4) + 
+  tm_compass(type = "8star", 
+              position = c("RIGHT", "BOTTOM"),
+              show.labels = 2,
+              text.size = 0.35) +
+  tm_layout(legend.outside = TRUE,
+            frame = FALSE)
+```
+
+[Documentation](https://www.rdocumentation.org/packages/tmap/versions/2.3-2/topics/tm_compass)
+
+
+## Edit the layout
+
+```{r}
+tm_shape(dat_map) + 
+  tm_fill("T",
+          palette = "viridis",
+          style = "quantile",
+          title = "Terrorist Attacks"
+          ) + 
+tm_borders(alpha=.4) + 
+tm_layout(
+  legend.text.size = 0.7,
+  legend.title.size = 1,
+  legend.position = c("right", "bottom"),
+  legend.outside = TRUE,
+  frame = FALSE
+  ) 
+```
+
+[Documentation](https://www.rdocumentation.org/packages/tmap/versions/2.3-2/topics/tm_layout)
+
+## Interactive map
+
+
+```{r}
+tmap_mode("view")
+
+tm_shape(dat_map) + 
+  tm_fill("T",
+          palette = "viridis",
+          id="province",
+          popup.vars=c("T", "growth", "base", "E", "G")
+          ) + 
+	tm_legend(outside=TRUE) +
+  tm_layout(frame = FALSE) 
+
+tmap_mode("plot")
+```
+
+
+[Documentation](https://rdrr.io/cran/tmap/man/tm_view.html)
+
+# Save a new shapefile
+
+```{r eval=FALSE}
+st_write(dat_map, "dat_map.shp")
+```
+

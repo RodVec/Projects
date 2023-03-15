@@ -1,0 +1,83 @@
+---
+title: "Lego Sales"
+author: "Rodrigo Vecino"
+output: html_notebook
+---
+
+## Packages
+```{r}
+library(tidyverse)
+library(dsbox)
+```
+
+## Quesrtion 1: Most common names
+What are the three most common first names of purchasers? Use the code chunk below to find out!
+```{r}
+lego_sales %>%
+  count(first_name) %>%
+  arrange(desc(n))
+```
+
+## Quesrtion 2: Most common themes
+What are the four most common themes of lego sets purchased? Use the code chunk below to find out!
+```{r}
+lego_sales %>%
+  count(theme) %>%
+  arrange(desc(n))
+```
+
+## Quesrtion 3: Most common subtheme
+Among the most common theme of lego sets purchased, what is the most common subtheme?
+```{r}
+lego_sales %>%
+  filter(theme == "Star Wars") %>%
+  count(subtheme) %>%
+  arrange(desc(n))
+```
+
+## Quesrtion 4: Grouping by age
+Create a new variable called age_group and group the ages of customers into the following categories: “18 and under”, “19 - 25”, “26 - 35”, “36 - 50”, “51 and over”.
+```{r}
+lego_sales <- lego_sales %>%
+  mutate(age_group = case_when(
+    age <= 18 ~ "18 and under",
+    age >= 19 & age <= 25 ~ "19 - 25", 
+    age >= 26 & age <= 35 ~ "26 - 35", 
+    age >= 36 & age <= 50 ~ "36 - 50", 
+    age >= 51 ~ "51 and over" 
+  ))
+```
+
+## Quesrtion 5: Most common age group
+Count the number of customers in each age group and display the counts in descending order, from most common to least common age group.
+Which age group is the most common? Write code in the chunk below to figure it out!
+```{r}
+lego_sales %>%
+  count(age_group) %>%
+  arrange(desc(n))
+```
+
+## Quesrtion 6: Quesrtion : Quantity of purchases by age
+Which age group has purchased the highest number of lego sets?
+```{r}
+lego_sales %>%
+  group_by(age_group) %>%
+  summarize(
+    total_n = sum(quantity)
+  ) %>%
+  arrange(desc(total_n))
+```
+
+## Quesrtion 7: Most generous age group
+Which age group has spent the most money on legos?
+```{r}
+lego_sales %>%
+  mutate(
+    amount_spent = us_price * quantity
+  ) %>%
+  group_by(age_group) %>%
+  summarize(
+    total_spent = sum(amount_spent)
+  ) %>%
+  arrange(desc(total_spent))
+```

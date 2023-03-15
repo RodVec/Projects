@@ -1,0 +1,292 @@
+---
+title: "Lab05"
+author: "Rodrigo Vecino"
+date: "10/08/2021"
+output: html_notebook
+---
+
+## Packages
+```{r packages}
+library(tidyverse) 
+devtools::install_github("rstudio-education/dsbox")
+library(dsbox) 
+```
+
+## Load data
+```{r data}
+states <- read.csv(url("https://raw.githubusercontent.com/rstudio-education/datascience-box/master/course-materials/starters/lab/lab-05-wrangle-sp-data/data/states.csv"))
+```
+
+## Exercise 1
+Filter the Denny’s dataframe for Alaska (AK) and save the result as dn_ak.
+How many Denny’s locations are there in Alaska?
+```{r exercise1}
+dn_ak <- dennys %>%
+  filter(state == "AK")
+
+nrow(dn_ak)
+```
+
+## Exercise 2
+Filter the La Quinta dataframe for Alaska (AK) and save the result as lq_ak.
+How many La Quinta locations are there in Alaska?
+```{r exercise2}
+lq_ak <- laquinta %>%
+  filter(state == "AK")
+
+nrow(lq_ak)
+```
+
+## Exercise 3
+How many pairings are there between all Denny’s and all La Quinta locations in Alaska, i.e. how many distances do we need to calculate between the locations of these establishments in Alaska?
+```{r exercise3}
+dn_lq_ak <- full_join(dn_ak, lq_ak, by = "state")
+nrow(dn_lq_ak)
+```
+
+## Exercise 4
+How many observations are in the joined dn_lq_ak data frame?
+What are the names of the variables in this data frame.
+```{r exercise4}
+nrow(dn_lq_ak)
+names(dn_lq_ak)
+```
+
+## Exercise 5
+What function from the tidyverse do we use the add a new variable to a data frame while keeping the existing variables?
+```{r exercise5}
+haversine <- function(long1, lat1, long2, lat2, round = 3) {
+  # convert to radians
+  long1 = long1 * pi / 180
+  lat1  = lat1  * pi / 180
+  long2 = long2 * pi / 180
+  lat2  = lat2  * pi / 180
+  
+  R = 6371 # Earth mean radius in km
+  
+  a = sin((lat2 - lat1)/2)^2 + cos(lat1) * cos(lat2) * sin((long2 - long1)/2)^2
+  d = R * 2 * asin(sqrt(a))
+  
+  return( round(d,round) ) # distance in km
+}
+```
+
+## Exercise 6
+Calculate the distances between all pairs of Denny’s and La Quinta locations and save this variable as distance.
+Make sure to save this variable in THE dn_lq_ak data frame so that you can use it later.
+```{r exercise6}
+dn_lq_ak$distance = haversine(dn_lq_ak$longitude.x, dn_lq_ak$latitude.x, dn_lq_ak$longitude.y, dn_lq_ak$latitude.y)
+```
+
+## Exercise 7
+Calculate the minimum distance between a Denny’s and La Quinta for each Denny’s location.
+To do so we group by Denny’s locations and calculate a new variable that stores the information for the minimum distance.
+```{r exercise7}
+dn_lq_ak_mindist <- dn_lq_ak %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))
+```
+
+## Exercise 8
+Describe the distribution of the distances Denny’s and the nearest La Quinta locations in Alaska.
+Also include an appripriate visualization and relevant summary statistics.
+```{r exercise8}
+min_ak = min(dn_lq_ak$distance)
+
+longitude <- c(dn_lq_ak$longitude.x, dn_lq_ak$longitude.y)
+latitude <- c(dn_lq_ak$latitude.x, dn_lq_ak$latitude.y)
+restaurant <- c(case_when(
+  longitude %in% dn_lq_ak$longitude.x     ~ "Denny's",
+  longitude %in% dn_lq_ak$longitude.y     ~ "La Quinta"
+))
+dn_lq_ak_sumarise <- data.frame(longitude, latitude, restaurant)
+
+ggplot(dn_lq_ak_sumarise, mapping = aes(x = longitude, y = latitude, color = restaurant)) +
+  geom_point()+
+  ggtitle("AK")
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+## Exercise 9
+Repeat the same analysis for North Carolina:
+(i) filter Denny’s and La Quinta Data Frames for NC
+(ii) join these data frames to get a completelist of all possible pairings
+(iii) calculate the distances between all possible pairings of Denny’s and La Quinta in NC
+(iv) find the minimum distance between each Denny’s and La Quinta location
+(v) visualize and describe the distribution of these shortest distances using appropriate summary statistics.
+```{r exercise9}
+# i
+dn_nc <- dennys %>%
+  filter(state == "NC")
+lq_nc <- laquinta %>%
+  filter(state == "NC")
+
+# ii
+dn_lq_nc <- full_join(dn_nc, lq_nc, by = "state")
+
+# iii
+dn_lq_nc$distance = haversine(dn_lq_nc$longitude.x, dn_lq_nc$latitude.x, dn_lq_nc$longitude.y, dn_lq_nc$latitude.y)
+
+# iv
+dn_lq_nc_mindist <- dn_lq_nc %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))
+
+# v
+min_nc = min(dn_lq_nc$distance)
+  
+longitude <- c(dn_lq_nc$longitude.x, dn_lq_nc$longitude.y)
+latitude <- c(dn_lq_nc$latitude.x, dn_lq_nc$latitude.y)
+restaurant <- c(case_when(
+  longitude %in% dn_lq_nc$longitude.x     ~ "Denny's",
+  longitude %in% dn_lq_nc$longitude.y     ~ "La Quinta"
+))
+dn_lq_nc_sumarise <- data.frame(longitude, latitude, restaurant)
+
+ggplot(dn_lq_nc_sumarise, mapping = aes(x = longitude, y = latitude, color = restaurant)) +
+  geom_point()+
+  ggtitle("NC")
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+## Exercise 10
+Repeat the same analysis for Texas.
+```{r exercise10}
+# i
+dn_tx <- dennys %>%
+  filter(state == "TX")
+lq_tx <- laquinta %>%
+  filter(state == "TX")
+
+# ii
+dn_lq_tx <- full_join(dn_tx, lq_tx, by = "state")
+
+# iii
+dn_lq_tx$distance = haversine(dn_lq_tx$longitude.x, dn_lq_tx$latitude.x, dn_lq_tx$longitude.y, dn_lq_tx$latitude.y)
+
+# iv
+dn_lq_tx_mindist <- dn_lq_tx %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))
+
+# v
+min_tx = min(dn_lq_tx$distance)
+  
+longitude <- c(dn_lq_tx$longitude.x, dn_lq_tx$longitude.y)
+latitude <- c(dn_lq_tx$latitude.x, dn_lq_tx$latitude.y)
+restaurant <- c(case_when(
+  longitude %in% dn_lq_tx$longitude.x     ~ "Denny's",
+  longitude %in% dn_lq_tx$longitude.y     ~ "La Quinta"
+))
+dn_lq_tx_sumarise <- data.frame(longitude, latitude, restaurant)
+
+ggplot(dn_lq_tx_sumarise, mapping = aes(x = longitude, y = latitude, color = restaurant)) +
+  geom_point()+
+  ggtitle("TX")
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+## Exercise 11
+Repeat the same analysis for a state of your choosing, different than the ones we covered so far.
+```{r exercise11}
+# Massachusetts
+# i
+dn_ma <- dennys %>%
+  filter(state == "MA")
+lq_ma <- laquinta %>%
+  filter(state == "MA")
+
+# ii
+dn_lq_ma <- full_join(dn_ma, lq_ma, by = "state")
+
+# iii
+dn_lq_ma$distance = haversine(dn_lq_ma$longitude.x, dn_lq_ma$latitude.x, dn_lq_ma$longitude.y, dn_lq_ma$latitude.y)
+
+# iv
+dn_lq_ma_mindist <- dn_lq_ma %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))
+
+# v
+min_ma = min(dn_lq_ma$distance)
+  
+longitude <- c(dn_lq_ma$longitude.x, dn_lq_ma$longitude.y)
+latitude <- c(dn_lq_ma$latitude.x, dn_lq_ma$latitude.y)
+restaurant <- c(case_when(
+  longitude %in% dn_lq_ma$longitude.x     ~ "Denny's",
+  longitude %in% dn_lq_ma$longitude.y     ~ "La Quinta"
+))
+dn_lq_ma_sumarise <- data.frame(longitude, latitude, restaurant)
+
+ggplot(dn_lq_ma_sumarise, mapping = aes(x = longitude, y = latitude, color = restaurant)) +
+  geom_point()+
+  ggtitle("MA")
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+## Exercise 12
+Among the states you examined, where is Mitch Hedberg’s joke most likely to hold true? Explain your reasoning.
+```{r exercise12}
+# texas, is the state with the most restaurants
+```
+
+## FUNCTION
+```{r function}
+representate <- function(my_state) {
+  # ii
+dn_f <- dennys %>%
+  filter(state == my_state)
+lq_f <- laquinta %>%
+  filter(state == my_state)
+
+# ii
+dn_lq_f <- full_join(dn_f, lq_f, by = "state")
+
+# iii
+dn_lq_f$distance = haversine(dn_lq_f$longitude.x, dn_lq_f$latitude.x, dn_lq_f$longitude.y, dn_lq_f$latitude.y)
+
+# iv
+dn_lq_f_mindist <- dn_lq_ma %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))
+
+# v
+min_ma = min(dn_lq_ma$distance)
+  
+longitude <- c(dn_lq_f$longitude.x, dn_lq_f$longitude.y)
+latitude <- c(dn_lq_f$latitude.x, dn_lq_f$latitude.y)
+restaurant <- c(case_when(
+  longitude %in% dn_lq_f$longitude.x     ~ "Denny's",
+  longitude %in% dn_lq_f$longitude.y     ~ "La Quinta"
+))
+dn_lq_f_sumarise <- data.frame(longitude, latitude, restaurant)
+
+plot = ggplot(dn_lq_f_sumarise, mapping = aes(x = longitude, y = latitude, color = restaurant)) +
+  geom_point()+
+  ggtitle(my_state)
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+  
+  return(plot)
+}
+```
+
+## TEST
+```{r test}
+my_state = "CA"
+representate(my_state)
+```

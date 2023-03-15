@@ -1,0 +1,93 @@
+---
+title: "Covid Washington"
+output: html_notebook
+author: Rodrigo Vecino
+---
+
+## Load Packages
+
+```{r load-packages, warning=FALSE, message=FALSE}
+library(glue)
+library(devtools)
+library(tidyverse)
+library(lubridate)
+library(scales)
+```
+
+## Load DATA
+```{r load data}
+data <- read.csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv')
+```
+
+```{r}
+colnames(data)[colnames(data) %in% c("cases", "deaths")] <- c("tot_cases", "tot_deaths")
+
+washington_comulative <- data %>%
+  arrange(date) %>%
+  filter(state == 'Washington') %>%
+  group_by(state, date) %>%
+  subset(select=-fips)
+
+washington_comulative$date <- as.Date(washington_comulative$date, "%Y-%m-%d")
+days_elapsed <- as.numeric(washington_comulative$date - min(washington_comulative$date))
+end_date     <- if_else(washington_comulative$date == max(washington_comulative$date), TRUE, FALSE)
+end_label    <- if_else(end_date, washington_comulative$state, NULL)
+```
+
+```{r}
+ggplot(data = washington_comulative,
+       mapping = aes(x = days_elapsed, 
+                     y = tot_cases,  
+                     label = end_label)) +
+  geom_line(size = 0.7, alpha = 0.8) +
+  # geom_point(data = washington_comulative %>% filter(end_date)) +
+  # geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  guides(color = FALSE) +
+  scale_color_viridis_d() +
+   scale_y_continuous(labels = label_comma()) +
+  theme_minimal() +
+  labs(
+    x = "days elapsed",
+    y = "Cases",
+    title = "Comulative cases in Washington"
+  )
+```
+
+```{r}
+washington <- data %>%
+  arrange(date) %>%
+  filter(state == 'Washington') %>%
+  group_by(state, date) %>%
+  subset(select=-fips)
+
+
+washington <- washington %>%
+  group_by(date) %>%
+  arrange(date) %>%
+  mutate(washington$cases == washington$tot_cases - lag(washington$tot_cases, 1)) %>%
+  ungroup()
+
+washington$date <- as.Date(washington$date, "%Y-%m-%d")
+days_elapsed <- as.numeric(washington$date - min(washington$date))
+end_date     <- if_else(washington$date == max(washington$date), TRUE, FALSE)
+end_label    <- if_else(end_date, washington$state, NULL)
+```
+```{r}
+ggplot(data = washington,
+       mapping = aes(x = days_elapsed, 
+                     y = cases,  
+                     label = end_label)) +
+  geom_line(size = 0.7, alpha = 0.8) +
+  # geom_point(data = washington %>% filter(end_date)) +
+  # geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  guides(color = FALSE) +
+  scale_color_viridis_d() +
+   scale_y_continuous(labels = label_comma()) +
+  theme_minimal() +
+  labs(
+    x = "days elapsed",
+    y = "Cases",
+    title = "Cases per day in Washington"
+  )
+```
+

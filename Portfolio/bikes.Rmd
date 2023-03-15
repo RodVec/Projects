@@ -1,0 +1,54 @@
+---
+title: "Bikes"
+output: html_notebook
+author : "Rodrigo Vecino"
+---
+
+## Packages
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+## Load data
+```{r}
+bikes <-read.csv("U:/Data Science/Bikes/202109-capitalbikeshare-tripdata.csv")
+```
+
+## New data
+Create a new data frame with the number of bikes that have been used in each hour.
+```{r}
+t=0
+bikes_count <- NULL
+while(t<23){
+  r=1
+  x =t+1
+  n_bikes =0
+  while(r<nrow(bikes_1_sep)){
+    if(bikes_1_sep$hr_s[r]==t){
+      n_bikes = n_bikes +1
+    }
+    else if(bikes_1_sep$hr_e[r]>=t && bikes_1_sep$hr_e[r]<=t){
+      n_bikes = n_bikes +1
+    }
+    r=r+1
+  } 
+  bikes_count$t[x] <- t
+  bikes_count$bikes[x] <- n_bikes
+  t=t+1
+}
+bikes_count <- data.frame(bikes_count, stringsAsFactors = FALSE)
+```
+
+## Plot results
+```{r}
+ggplot(bikes_count, mapping = aes(x = t, y = bikes)) +
+  geom_area()+
+  ggtitle("Bikes per hour")
+  labs(
+    x = "hour",
+    y = "Number of Bikes"
+  )
+```
+

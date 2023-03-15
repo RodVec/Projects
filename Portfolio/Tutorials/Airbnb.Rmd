@@ -1,0 +1,83 @@
+---
+title: "Airbnb"
+author: "Rodrigo Vecio"
+output: html_notebook
+---
+
+## Packages
+```{r}
+library(tidyverse)
+library(dsbox)
+```
+
+## Load and glimpse
+The data is in the dsbox package and it’s called edibnb.
+You can view the data using
+```{r}
+glimpse(edibnb)
+```
+
+## Question 1: Number of observations
+How many Airbnb listings are included in this dataset? Use the following code block to find out.
+```{r}
+nrow(edibnb)
+```
+
+## Question 2: Examining further
+Each column represents a variable. We can get a list of the variables in the data frame using the names() function.
+```{r}
+names(edibnb)
+```
+
+## Question 3: Building a histogram
+Create a histogram of the distribution of Airbnb listing prices (nightly rates) in Edinburgh. Sample code is provided below, but you will need to fill in the blanks.
+```{r}
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram() +
+  labs(
+    x = "Airbnb listing price, in £",
+    y = "Frequency",
+    title = "Distribution of Airbnb nightly rates in Edinburgh"
+  )
+```
+
+## Question 4: Faceted histograms
+Create a faceted histogram where each facet represents a neighbourhood and displays the distribution of Airbnb prices in that neighbourhood. Sample code is provided below, but you will need to fill in the blanks.
+```{r}
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram() +
+  facet_wrap(~neighbourhood) +
+  labs(
+    x = "Airbnb listing price, in £",
+    y = "Frequency",
+    title = "Distribution of Airbnb nightly rates in Edinburgh",
+    subtitle = "By neighbourhood"
+  )
+```
+
+## Question 5: Binwidth experimentation
+Instead of having R pick a binwidth itself, try out different binwidths using the code below:
+```{r}
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram(binwidth = 75) +
+  facet_wrap(~neighbourhood) +
+  labs(
+    x = "Airbnb listing price, in £",
+    y = "Frequency",
+    title = "Distribution of Airbnb nightly rates in Edinburgh"
+  )
+```
+
+## Question 6: Visualising review scores
+Create a similar visualisation, this time showing the distribution of review scores (review_scores_rating) across neighbourhoods.
+```{r}
+ggplot(data = edibnb, mapping = aes(x = review_scores_rating)) +
+  geom_histogram() +
+  facet_wrap(~neighbourhood) +
+  labs(
+    x = "Average rating score of property",
+    y = "Frequency",
+    title = "Distribution of Airbnb rating scores in Edinburgh",
+    subtitle = "By neighbourhood"
+  )
+```
