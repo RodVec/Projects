@@ -24,6 +24,7 @@ Supervisor: Íñigo Sanz Fernández
 Collaborating Entity: Seaplace
 
 ABSTRACT
+
 This project study if the FPSO Petrojarl Foinaven can be converted into a "shuttle tanker", a more conventional oil tanker that only transports crude oil from the point of extraction of crude oil in the ocean to the refinery, unloading it there. For this project, the system of pipes and pumps of the crude tanks has been studied to be able to unload the crude in less time than the minimum time established by the refineries.
 Subsequently, since the crude oil cannot be pumped at temperatures below 40ºC, the heat transmission of the crude oil with its surroundings during the transfer from the extraction point where the FPSO is currently located, East of Scotland, to the refinery in Rotterdam.
 Due to the complexity of the equations for calculating the crude oil temperature, an ANSYS program has been developed. Likewise, an economic exercise of the profitability of the project for the next 15 years has been carried out. Lastly, an environmental study of the ship has been carried out and occupational risk prevention has been documented.
