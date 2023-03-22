@@ -21,7 +21,9 @@ Resume of my Final Degree Project (TFG):
 Title - ADAPTACIÓN DE BUQUE A NUEVAS FUNCIONES
 
 Author: Rodrigo Vecino de Haro
+
 Supervisor: Íñigo Sanz Fernández
+
 Collaborating Entity: Seaplace
 
 ABSTRACT
