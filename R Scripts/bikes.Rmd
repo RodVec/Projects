@@ -1,0 +1,64 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+```{r}
+## Set working directory 
+setwdOK <- try(setwd(dirname(rstudioapi::getActiveDocumentContext()$path)))
+
+## Dataset
+bikes <- read_delim("./Data/202109-capitalbikeshare-tripdata.csv")
+```
+
+```{r}
+bikes_1_sep <- bikes %>%
+  filter(mday(started_at)==1) %>%
+  mutate(hr_s=hour(started_at)) %>%
+  mutate(hr_e=hour(ended_at), duration = hr_e - hr_s) 
+
+bikes_1_sep <- bikes_1_sep %>%
+  filter(hr_s, hr_e)
+```
+
+```{r}
+t=0
+bikes_count <- NULL
+while(t<23){
+  r=1
+  x =t+1
+  n_bikes =0
+  while(r<nrow(bikes_1_sep)){
+    if(bikes_1_sep$hr_s[r]==t){
+      n_bikes = n_bikes +1
+    }
+    r=r+1
+  } 
+  bikes_count$t[x] <- t
+  bikes_count$bikes[x] <- n_bikes
+  t=t+1
+}
+bikes_count <- data.frame(bikes_count, stringsAsFactors = FALSE)
+```
+
+
+```{r}
+ggplot(bikes_count, mapping = aes(x = t, y = bikes)) +
+  geom_area()+
+  ggtitle("Bikes per hour")
+  labs(
+    x = "hour",
+    y = "Number of Bikes"
+  )
+```
+

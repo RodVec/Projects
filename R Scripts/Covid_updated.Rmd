@@ -1,0 +1,152 @@
+---
+title: "COVID IN US STATES"
+author: "Rodrigo Vecino"
+output:
+  html_document:
+    df_print: paged
+---
+
+data from: https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv
+
+## Libraries
+
+```{r load-packages, warning=FALSE, message=FALSE}
+# devtools::install_github("RamiKrispin/coronavirus")
+library(coronavirus)
+library(tidyverse)
+library(lubridate)
+library(glue)
+library(scales)
+library(ggrepel)
+library(DT)
+library(dplyr)
+library(data.table)
+```
+
+## DATA US STATES
+```{r load data states}
+# data_states <- read.delim(file = "C:/Users/rodri/Documents/ICAI/4º Clarkson/Data Science/COVID/data_states.txt", header = TRUE, sep = ",")
+
+## Set working directory 
+setwdOK <- try(setwd(dirname(rstudioapi::getActiveDocumentContext()$path)))
+
+## Dataset
+FastFoodRestaurants <- read.delim(file = "Data/data_states.txt", header = TRUE, sep = ",")
+
+data_states <- fread('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv')
+```
+
+
+## Data prep
+```{r select-states}
+states <- c(
+  "Florida",
+  "New York",
+  "New Jersey",
+  "Massachusets",
+  "Connecticut",
+  "Texas",
+  "California",
+  "Washington",
+  "Illinoins",
+  "Idaho"
+)
+```
+
+
+```{r prep-state-data}
+states_deaths <- data_states %>%
+  filter( state %in% states) %>%
+  # calculate number of total deaths for each country and date
+  group_by(state, date) %>%
+  summarise(tot_deaths = sum(deaths)) %>%
+  states_deaths$death = states_deaths$tot_deaths-lag(states_deaths$tot_deaths) %>%
+  # arrange by date in ascending order
+  arrange(date) %>%
+  ungroup()
+
+# record days elapsed, end date, and end label
+states_deaths$date <- as.Date(states_deaths$date, "%Y-%m-%d")
+days_elapsed <- as.numeric(states_deaths$date - min(states_deaths$date))
+end_date     <- if_else(states_deaths$date == max(states_deaths$date), TRUE, FALSE)
+end_label    <- if_else(end_date, states_deaths$state, NULL)
+
+states_deaths$days_elapsed = days_elapsed
+states_deaths$end_date = end_date
+states_deaths$end_label = end_label
+```
+
+
+We also need to take a note of the "as of date" for the data so that we can properly label our visualisation.
+
+```{r record-as-of-date}
+as_of_date <- states_deaths %>% 
+  summarise(max(date)) %>% 
+  pull()
+
+as_of_date_formatted <- glue("{wday(as_of_date)}, {month(as_of_date)} {day(as_of_date)}, {year(as_of_date)}")
+```
+
+## Visualisation - Cumulative deaths from COVID-19
+
+
+```{r visualise, warning=FALSE}
+ggplot(data = states_deaths,
+       mapping = aes(x = date, 
+                     y = tot_deaths, 
+                     color = state, 
+                     label = end_label)) +
+  # represent cumulative cases with lines
+  geom_line(size = 0.7, alpha = 0.8) +
+  # add points to line endings
+  geom_point(data = states_deaths %>% filter(end_date)) +
+  # add country labels, nudged above the lines
+  geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  # turn off legend
+  guides(color = FALSE) +
+  # use pretty colors
+  scale_color_viridis_d() +
+  # better formatting for y-axis
+  scale_y_continuous(labels = label_comma()) +
+  # use minimal theme
+  theme_minimal() +
+  # customize labels
+  labs(
+    x = "Date",
+    y = "Deaths",
+    title = "Cumulative deaths from COVID-19, selected states",
+    subtitle = glue("Data as of", as_of_date_formatted, .sep = " ")
+  )
+```
+
+## Visualisation - Deaths per day from COVID-19
+
+```{r visualise 2, warning=FALSE}
+ggplot(data = states_deaths,
+       mapping = aes(x = days_elapsed, 
+                     y = death, 
+                     color = state, 
+                     label = end_label)) +
+  # represent cumulative cases with lines
+  geom_line(size = 0.7, alpha = 0.8) +
+  # add points to line endings
+  geom_point(data = states_deaths %>% filter(end_date)) +
+  # add country labels, nudged above the lines
+  geom_label_repel(nudge_y = 1, direction = "y", hjust = 1) + 
+  # turn off legend
+  guides(color = FALSE) +
+  # use pretty colors
+  scale_color_viridis_d() +
+  # better formatting for y-axis
+  scale_y_continuous(labels = label_comma()) +
+  # use minimal theme
+  theme_minimal() +
+  # customize labels
+  labs(
+    x = "Days since 10th confirmed death",
+    y = "Cumulative number of deaths",
+    title = "Deaths per day from COVID-19, selected states",
+    subtitle = glue("Data as of", as_of_date_formatted, .sep = " ")
+  )
+```
+
