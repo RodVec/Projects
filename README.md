@@ -16,7 +16,9 @@ Some example skills that I have demonstrated in R:
 
 
 
-Resume of my Final Degree Project (TFG):ADAPTACIÓN DE BUQUE A NUEVAS FUNCIONES
+Resume of my Final Degree Project (TFG):
+
+ADAPTACIÓN DE BUQUE A NUEVAS FUNCIONES
 Author: Rodrigo Vecino de Haro
 Supervisor: Íñigo Sanz Fernández
 Collaborating Entity: Seaplace
