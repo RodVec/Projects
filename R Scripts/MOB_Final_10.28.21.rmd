@@ -1,0 +1,170 @@
+---
+title: "Comparing the Distance from La Quinta to Denny's with Distances between La Quinta and Other Restaurants"
+author: "Jenna Keute, Ethan Desmarais, Luke St. Amour, Rodrigo vecino De Haro"
+date: "10/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+This analysis attempts to provide a better answer to the problem of if La Quintas is closer to Denny's than the previous labs we have completed. In order to improve on these labs, we have selected other random restaurants to compare Dennys to to see if in fact Denny's is close to La Quintas or if restaurants in general just happen to be placed close to La Quintas. 
+
+
+### Load packages to use for analysis
+The following packages are used:
+
+tidyverse: Cleaning and mutating data
+
+readr: reading csv into R
+
+dsbox: provides La Quinta and Denny's Data
+
+janitor: cleans data headings
+
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dsbox)
+library(readr)
+library(janitor)
+
+## Set working directory 
+setwdOK <- try(setwd(dirname(rstudioapi::getActiveDocumentContext()$path)))
+
+## Dataset
+FastFoodRestaurants <- read_csv("Data/FastFoodRestaurants.csv")
+#View(FastFoodRestaurants)
+```
+
+### Haversine Function from previous lab 
+
+This function inputs the longitude and latitude of 2 locations and outputs the distance between the 2 locations
+
+```{r}
+haversine <- function(long1, lat1, long2, lat2, round = 3) {
+  # convert to radians
+  long1 = long1 * pi / 180
+  lat1  = lat1  * pi / 180
+  long2 = long2 * pi / 180
+  lat2  = lat2  * pi / 180
+  
+  R = 6371 # Earth mean radius in km
+  
+  a = sin((lat2 - lat1)/2)^2 + cos(lat1) * cos(lat2) * sin((long2 - long1)/2)^2
+  d = R * 2 * asin(sqrt(a))
+  
+  return( round(d,round) ) # distance in km
+}
+```
+
+
+### Create function to find the closet of a selected restaurant to La Quintas
+
+This function takes a state, and restaurant as inputs, and outputs a data set which tells us the distance of the closest of the selected restaurant to the La Quinta in a given state. This function additionally randomly selects the same number of the restaurant in the state as there are Denny's in the state, so we are comparing the same number of locations.  
+
+```{r function}
+restaurant <- function(prov,rest){
+    dn_rest <- select(FastFoodRestaurants, name, latitude, longitude, province) %>%  #remove unneeded columns
+    filter(name==rest) %>%
+    filter (prov == province) %>%  #clean up names of columns
+      rename (state = province)
+  
+   
+    
+  dn_laquinta <- laquinta %>%
+    filter(state == prov) %>%
+    select(latitude, longitude, state, address) %>%
+    cbind("laquinta") %>%       #adds a column with the name of the restraunt
+    clean_names()%>%
+    rename(name =  laquinta)    #renames column to name
+    
+  
+  dn_dennys <- dennys %>%
+    filter(state == prov) %>%
+    select(latitude, longitude, state)
+
+  numb_dn = nrow(dn_dennys)#count number of rows of dennys and other restaurant
+  num_rest = nrow(dn_rest)
+  
+  
+    if (numb_dn < num_rest){
+      dn_rest <-  sample_n(dn_rest,numb_dn, replace= FALSE)  #randomly select the same amount of locations as Dennys
+    } else {
+      dn_rest <-  sample_n(dn_dennys, num_rest, replace= FALSE)
+      }
+      
+  
+  joinedtables  <- full_join(dn_laquinta, dn_rest, by = "state") %>%
+    mutate(distance=haversine(longitude.x,latitude.x,longitude.y,latitude.y)) #calculate distances between la Quinta and restaurant
+    
+    
+  mindist = joinedtables %>% 
+    group_by(address)%>%
+    summarise(closest = min(distance))
+
+
+   return(mindist)
+}
+
+```
+###  Taken from lab 5- Function to Compare LaQuinta to the closest Denny's
+
+This function takes an argument of a state, and outputs each La Quinta location and the distance of the closest Denny's to that location. 
+
+```{r}
+analyze <- function(state_abrv) {
+  dn <-dennys %>%
+    filter(state == state_abrv)
+  lq <- laquinta %>%
+    filter(state == state_abrv)
+dn_lq <- full_join(dn, lq, by = "state")
+dn_lq <- mutate(dn_lq, distance = haversine(longitude.x, latitude.x, longitude.y, latitude.y))
+dn_lq_ak_mindist <- dn_lq %>%
+  group_by(address.y) %>%
+  summarise(closest= min(distance))
+return(dn_lq_ak_mindist)
+}
+```
+
+### Randomly select variable "state" and "restaurant"
+Using a randomly selected number, a row of the Fast Food data set is selected. The state and restaurant from the row are used for the analysis. The analysis functions are then called to get datasets for the selection the random number has made. 
+
+```{r}
+set.seed(12345)  
+data_s1 <- FastFoodRestaurants[sample(1:nrow(FastFoodRestaurants), 1),] #select a random row according to the seed from the Fast Food Data
+
+t_rest<- restaurant(data_s1$province, data_s1$name)  #passes the selected row into our functions
+t_dennys <- analyze(data_s1$province)
+summary(t_rest)      #show summary statistics of the results
+summary(t_dennys)
+```
+### Plot data of randomly selected variables
+In order to compare the distances of the Denny's to the other restaurants, we generated histograms to determine if there is in fact evidence that Denny's is closer to La Quinta than the other restaurants.
+
+
+```{r}
+ggplot(t_rest, aes(x=closest)) +geom_histogram(binwidth = 10)+ labs(title = data_s1$name, subtitle = data_s1$province)
+```
+```{r}
+ggplot(t_dennys, aes(x=closest)) +geom_histogram(binwidth = 10)+ labs(title = "Dennys", subtitle = data_s1$province)
+```
+
+Running the analysis again for another random number, we get the following:
+
+```{r}
+set.seed(546734334)
+data_s1 <- FastFoodRestaurants[sample(1:nrow(FastFoodRestaurants), 1),]
+
+t_rest<- restaurant(data_s1$province, data_s1$name)
+t_dennys <- analyze(data_s1$province)
+summary(t_rest)
+summary(t_dennys)
+ggplot(t_rest, aes(x=closest)) +geom_histogram(binwidth = 10)+ labs(title = data_s1$name, subtitle = data_s1$province)
+ggplot(t_dennys, aes(x=closest)) +geom_histogram(binwidth = 10)+ labs(title = "Dennys", subtitle = data_s1$province)
+
+```
+
+In these cases, the joke that La Quinta is close to Denny's seems to hold as the Denny's are much closer to the La Quintas than the other restaurant. This does not mean that the joke holds in every location though and with every restaurant. Further analysis has to be done with many more restaurants and states to see if the joke still holds. 
