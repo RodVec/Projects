@@ -1,0 +1,76 @@
+---
+title: "Road Traffic Accidents"
+author: "Rodrigo Vecino"
+output: html_notebook
+---
+
+## Packages
+```{r}
+library(tidyverse)
+library(dsbox)
+```
+
+## First look at the data
+You can take a peek at the data using the glimpse() function in the box below.
+```{r}
+glimpse(accidents)
+```
+
+Question 1: How many accidents were recorded in Edinburgh in 2018? Use the following code chunk to submit your answer.
+```{r}
+nrow(accidents)
+```
+
+Question 2: How many variables are recorded on these crashes? Use the code chunk below!
+```{r}
+ncol(accidents)
+```
+
+## Multi-vehicle accidents
+Question 3: How many accidents with 2 or more vehicles occurred in an urban area? Use the code chunk below to find out!
+```{r}
+accidents %>%
+  filter(vehicles >= 2, urban_rural == 2) %>%
+  nrow()
+```
+
+## Speed limits
+Question 4: Create a frequency table of the speed limits at which accidents happen (speed_limit). Look at the hints for help!
+```{r}
+accidents %>%
+  count(speed_limit)
+```
+
+## Visualizing
+Question 5: Recreate the following plot. To match the colors, you can use scale_fill_viridis_d().
+```{r}
+ggplot(data = accidents, aes(x = severity, fill = light)) +
+  geom_bar(position = "fill") +
+  coord_flip() +
+  labs(y = "Proportion", x = "Accident severity",
+       fill = "Light condition", 
+       title = "Light condition and accident severity") +
+  scale_fill_viridis_d()
+```
+
+## Customizing labels
+Question 5: Recreate the same figure, but this time change the labels of the crash severity variable such that the dashes in the labels don’t show up. There are many ways to do this, but in this tutorial, we’ll focus on changing how the data are represented in the light variable using mutate(). Note that the colours in the figure might change, but that’s ok.
+```{r}
+accidents <- accidents %>%
+  mutate(light = case_when(
+  light == "Daylight" ~ "Daylight",
+  light == "Darkness - lights lit" ~ "Darkness, lights lit",
+  light == "Darkness - lights unlit" ~ "Darkness, lights unlit",
+  light == "Darkness - no lighting" ~ "Darkness, no lighting",
+  light == "Darkness - lighting unknown" ~ "Darkness, lighting unknown"))
+
+#now, copy the code from the previous exercise here!
+
+ggplot(data = accidents, aes(x = severity, fill = light)) +
+  geom_bar(position = "fill") +
+  coord_flip() +
+  labs(y = "Proportion", x = "Accident severity",
+       fill = "Light condition", 
+       title = "Light condition and accident severity") +
+  scale_fill_viridis_d()
+```
